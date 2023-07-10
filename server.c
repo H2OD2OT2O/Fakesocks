@@ -38,7 +38,6 @@ void *relay(void *args)
     if (info->c_or_r == 0)
     {
         // client to remote
-        info->buf[0] = -1;
 
         n = recv_all(from, buf, 5, 0);
         if (n <= 0)
@@ -478,6 +477,7 @@ void *handle_socks5(void *args)
     pthread_mutex_t cli, ser;
     char *real_info;
     real_info = malloc(BUF_SIZE);
+    real_info[0] = -1;
     pthread_mutex_init(&cli, NULL);
     pthread_mutex_init(&ser, NULL);
     Args c2r = {sfd, sockfd, &cli, &ser, 0, real_info}, r2c = {sockfd, sfd, &ser, &cli, 1, NULL};
