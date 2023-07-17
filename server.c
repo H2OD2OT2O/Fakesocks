@@ -475,7 +475,7 @@ void *handle_socks5(void *args)
     free(buf);
     pthread_t pid[2];
     pthread_mutex_t cli, ser;
-    char *real_info;
+    signed char *real_info;
     real_info = malloc(BUF_SIZE);
     real_info[0] = -1;
     pthread_mutex_init(&cli, NULL);
