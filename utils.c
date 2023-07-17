@@ -19,19 +19,8 @@
 #include "mbedtls/ssl.h"
 #include <mbedtls/debug.h>
 
-void my_handshake_callback(void *ctx, mbedtls_ssl_context *ssl, int event)
-{
-    // char *buf = (char *)ctx;
-    // if (event == MBEDTLS_SSL_CLIENT_HELLO)
-    // {
-    //     // 获取Client Hello随机数
-    //     unsigned char *client_random = ssl->handshake->randbytes;
-    //     memcpy(buf, client_random, 32);
-
-    //     // 然后可以将client_random的值保存下来或者进行其他操作
-    //     // ...
-    // }
-}
+char *tmp_buf;
+pthread_mutex_t tls_mutex;
 
 void sigpipe_handler(int sig)
 {
@@ -49,7 +38,11 @@ void mbedtls_debug(void *ctx, int level, const char *file, int line, const char 
 int my_send_func(void *ctx, const unsigned char *buf, size_t len)
 {
     int ret = send(*(int *)ctx, buf, len, 0);
-    // printf("send:%d\n", ret);
+    if (buf[0] == 0x16 && buf[5] == 0x1)
+    {
+        memcpy(tmp_buf, buf + 11, 32);
+        pthread_mutex_unlock(&tls_mutex);
+    }
     return ret;
 }
 
@@ -250,11 +243,14 @@ int tls_handshake(int socks, char *hostname, char *random)
 
     // mbedtls_ssl_set_hs_cb(&ssl, my_handshake_callback, random);
 
+    pthread_mutex_lock(&tls_mutex);
+    tmp_buf = random;
     while ((ret = mbedtls_ssl_handshake(&ssl)) != 0)
     {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
         {
             printf("Failed to perform SSL handshake.\n");
+            pthread_mutex_unlock(&tls_mutex);
             goto exit;
         }
     }
@@ -278,4 +274,3 @@ exit:
     mbedtls_entropy_free(&entropy);
     return -1;
 }
-

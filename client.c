@@ -12,7 +12,9 @@
 #include <signal.h>
 #include "utils.h"
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 2048
+
+extern pthread_mutex_t tls_mutex;
 
 char *fakename, *servername;
 unsigned short sport;
@@ -95,7 +97,7 @@ void *handle_socks5(void *args)
     int none = 0;
     int ip_or_dns, dst_len, dst_port;
     unsigned char *buf;
-    char random[32], random_key[32], dst[255];
+    unsigned char random[32], random_key[32], dst[255];
     struct sockaddr_in addr, server_addr;
     struct timeval tv = {30, 0}; // 设置超时时间为30秒
     mbedtls_gcm_context ctx;
@@ -296,6 +298,10 @@ void *handle_socks5(void *args)
         close(sfd);
         pthread_exit(NULL);
     }
+    printf("Random:");
+    for (int i = 0; i < 32; i++)
+        printf("%02X", random[i]);
+    printf("\n");
 
     // send application data
 
@@ -310,32 +316,36 @@ void *handle_socks5(void *args)
         tmp[i] = rand();
     }
     *((unsigned short *)(buf + 3)) = htons(16 + 32 + 1 + ip_or_dns + dst_len + 2 + 32);
-    memcpy(buf + 16, random, 32);
-    buf[16 + 32] = ip_or_dns;
+    memcpy(buf + 5 + 16, random, 32);
+    buf[5 + 16 + 32] = ip_or_dns;
     if (ip_or_dns == 0)
     {
-        memcpy(buf + 16 + 32 + 1, dst, 4);
-        *((unsigned short *)(buf + 16 + 32 + 1 + 4)) = htons(dst_port);
-        memcpy(buf + 16 + 32 + 1 + 4 + 2, random_key, 32);
+        memcpy(buf + 5 + 16 + 32 + 1, dst, 4);
+        *((unsigned short *)(buf + 5 + 16 + 32 + 1 + 4)) = htons(dst_port);
+        memcpy(buf + 5 + 16 + 32 + 1 + 4 + 2, random_key, 32);
     }
     else
     {
-        buf[16 + 32 + 1] = dst_len;
-        memcpy(buf + 16 + 32 + 1 + 1, dst, dst_len);
-        *((unsigned short *)(buf + 16 + 32 + 1 + 1 + dst_len)) = htons(dst_port);
-        memcpy(buf + 16 + 32 + 1 + 1 + dst_len + 2, random_key, 32);
+        buf[5 + 16 + 32 + 1] = dst_len;
+        memcpy(buf + 5 + 16 + 32 + 1 + 1, dst, dst_len);
+        *((unsigned short *)(buf + 5 + 16 + 32 + 1 + 1 + dst_len)) = htons(dst_port);
+        memcpy(buf + 5 + 16 + 32 + 1 + 1 + dst_len + 2, random_key, 32);
     }
 
     unsigned char *buf1 = malloc(BUF_SIZE);
 
-    aes_256_gcm_encrypt(&ctx, buf + 16, 32 + 1 + ip_or_dns + dst_len + 2 + 32,
-                        random_key, 32,
+    aes_256_gcm_encrypt(&ctx, buf + 5 + 16, 32 + 1 + ip_or_dns + dst_len + 2 + 32,
+                        key, 32,
                         buf1, iv, 12,
-                        buf, 16);
-    memcpy(buf + 16, buf1, 32 + 1 + ip_or_dns + dst_len + 2 + 32);
+                        buf + 5, 16);
+    memcpy(buf + 5 + 16, buf1, 32 + 1 + ip_or_dns + dst_len + 2 + 32);
     free(buf1);
 
-    ret = send(sockfd, buf, 16 + 32 + 1 + ip_or_dns + dst_len + 2 + 32, 0);
+    ret = send(sockfd, buf, 5 + 16 + 32 + 1 + ip_or_dns + dst_len + 2 + 32, 0);
+    printf("Buf:");
+    for (int i = 0; i < 32; i++)
+        printf("%02X", buf[i]);
+    printf("\n");
     if (ret <= 0)
     {
         printf("send application error\n");
@@ -370,6 +380,8 @@ int main(int argc, char *argv[])
     char buf[BUF_SIZE];
     pthread_t pid;
 
+    pthread_mutex_init(&tls_mutex, NULL);
+
     // 解析命令行参数
     if (argc == 7)
     {
@@ -381,7 +393,7 @@ int main(int argc, char *argv[])
         int stl = strlen(argv[6]);
         for (int i = 0; i < 32; i++)
         {
-            key[i] = argv[4][i % stl];
+            key[i] = argv[6][i % stl];
         }
     }
     else

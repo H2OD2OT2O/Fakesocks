@@ -50,7 +50,7 @@ void *relay(void *args)
             goto end;
         }
         // check for tls handshake
-        if (buf[0] != 0x16 || *((unsigned short *)(buf + 1)) != 0x103)
+        if (buf[0] != 0x16)
         {
             goto normal_relay;
         }
@@ -70,7 +70,7 @@ void *relay(void *args)
             goto end;
         }
         // check for client hello
-        if (buf[0] != 0x1 || *((unsigned short *)(buf + 4)) != 0x303)
+        if (buf[0] != 0x1)
         {
             goto normal_relay;
         }
@@ -83,7 +83,7 @@ void *relay(void *args)
             if (n <= 0)
                 goto end;
             // check for tls data
-            if (buf[0] != 0x23)
+            if (buf[0] != 0x17)
             {
                 n = ntohs(*((unsigned short *)(buf + 3)));
                 if (n > 1500)
@@ -154,7 +154,8 @@ void *relay(void *args)
                 goto normal_relay;
             }
             memcpy(info->buf, plaintext + 32, n - 16 - 32);
-            close(to);
+            printf("Fakesocks detected!\n");
+            shutdown(to, SHUT_RDWR);
             goto end;
         }
     }
@@ -180,7 +181,6 @@ end:
     fprintf(stderr, "%ld:", time(NULL));
     perror("relay");
     mbedtls_gcm_free(&ctx);
-    close(to);
     pthread_exit(NULL);
 }
 
@@ -219,7 +219,7 @@ void *real_relay(void *args)
         }
         else
         {
-            n = recv(from, buf, BUF_SIZE, 0);
+            n = recv(from, buf, BUF_SIZE - 5 - 16, 0);
             if (n <= 0)
             {
                 goto end1;
@@ -489,6 +489,9 @@ void *handle_socks5(void *args)
     if (real_info[0] != -1)
     {
         close(sockfd);
+        printf("Real info:");
+        for (int i = 0; i < 32; i++)
+            printf("%02x", (unsigned char)real_info[i]);
         // ip
         if (real_info[0] == 0)
         {
