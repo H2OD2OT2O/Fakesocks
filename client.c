@@ -32,6 +32,8 @@ void *relay(void *args)
     buf1 = malloc(BUF_SIZE);
     mbedtls_gcm_context ctx;
     mbedtls_gcm_init(&ctx);
+    mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, info->buf, 256);
+    // int data_len = 0;
 
     while (1)
     {
@@ -60,6 +62,9 @@ void *relay(void *args)
                 goto end1;
             }
             n = ntohs(*((unsigned short *)(buf + 3)));
+            if (n > BUF_SIZE)
+                goto end1;
+            // data_len = n;
             n = recv_all(from, buf, n, 0);
             if (n <= 0)
             {
@@ -102,12 +107,14 @@ void *handle_socks5(void *args)
     struct timeval tv = {30, 0}; // 设置超时时间为30秒
     mbedtls_gcm_context ctx;
     mbedtls_gcm_init(&ctx);
+    mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 256);
     buf = malloc(BUF_SIZE);
     if (setsockopt(sfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv)) < 0)
     {
         perror("setsockopt");
         close(sfd);
         free(buf);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
 
@@ -117,6 +124,7 @@ void *handle_socks5(void *args)
         printf("1 recv error or not socks5\n");
         close(sfd);
         free(buf);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
     n = recv_all(sfd, buf, buf[1], 0);
@@ -125,6 +133,7 @@ void *handle_socks5(void *args)
         printf("1 recv error\n");
         close(sfd);
         free(buf);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
     for (int i = 0; i < n; i++)
@@ -140,6 +149,7 @@ void *handle_socks5(void *args)
         printf("2 method not supported\n");
         close(sfd);
         free(buf);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
 
@@ -152,6 +162,7 @@ void *handle_socks5(void *args)
         printf("3 send error\n");
         close(sfd);
         free(buf);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
 
@@ -162,6 +173,7 @@ void *handle_socks5(void *args)
         perror("recv");
         close(sfd);
         free(buf);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
     if (buf[1] == 1)
@@ -175,6 +187,7 @@ void *handle_socks5(void *args)
                 perror("recv");
                 close(sfd);
                 free(buf);
+                mbedtls_gcm_free(&ctx);
                 pthread_exit(NULL);
             }
             memcpy(dst, buf, 4);
@@ -191,6 +204,7 @@ void *handle_socks5(void *args)
                 perror("recv");
                 close(sfd);
                 free(buf);
+                mbedtls_gcm_free(&ctx);
                 pthread_exit(NULL);
             }
             int l = buf[0];
@@ -201,6 +215,7 @@ void *handle_socks5(void *args)
                 perror("recv");
                 close(sfd);
                 free(buf);
+                mbedtls_gcm_free(&ctx);
                 pthread_exit(NULL);
             }
             memcpy(dst, buf, l);
@@ -215,6 +230,7 @@ void *handle_socks5(void *args)
             printf("10 address not supported\n");
             close(sfd);
             free(buf);
+            mbedtls_gcm_free(&ctx);
             pthread_exit(NULL);
         }
     }
@@ -225,6 +241,7 @@ void *handle_socks5(void *args)
         close(sfd);
         printf("11 cmd not supported\n");
         free(buf);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
 
@@ -242,6 +259,7 @@ void *handle_socks5(void *args)
         free(buf);
         free(ip);
         close(sfd);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
     memset(&server_addr, 0, sizeof(server_addr));
@@ -263,6 +281,7 @@ void *handle_socks5(void *args)
         ret = send(sfd, buf, 10, 0); // connect fail
         free(buf);
         close(sfd);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
     buf[0] = 5;
@@ -279,6 +298,7 @@ void *handle_socks5(void *args)
         close(sockfd);
         free(buf);
         close(sfd);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
 
@@ -288,6 +308,7 @@ void *handle_socks5(void *args)
         close(sockfd);
         free(buf);
         close(sfd);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
 
@@ -296,6 +317,7 @@ void *handle_socks5(void *args)
         close(sockfd);
         free(buf);
         close(sfd);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
     printf("Random:");
@@ -352,6 +374,7 @@ void *handle_socks5(void *args)
         close(sockfd);
         free(buf);
         close(sfd);
+        mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
 
@@ -369,6 +392,7 @@ void *handle_socks5(void *args)
     pthread_mutex_destroy(&ser);
     close(sfd);
     close(sockfd);
+    mbedtls_gcm_free(&ctx);
     printf("exit\n");
 }
 

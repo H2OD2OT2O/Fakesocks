@@ -33,6 +33,7 @@ void *relay(void *args)
     plaintext = malloc(BUF_SIZE);
     mbedtls_gcm_context ctx;
     mbedtls_gcm_init(&ctx);
+    mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 256);
 
     // detect fakesocks
     if (info->c_or_r == 0)
@@ -191,10 +192,12 @@ void *real_relay(void *args)
     int to = info->to;
     int n, ret;
     char *buf, *buf1;
+    // int data_len = 0;
     buf = malloc(BUF_SIZE);
     buf1 = malloc(BUF_SIZE);
     mbedtls_gcm_context ctx;
     mbedtls_gcm_init(&ctx);
+    mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, info->buf, 256);
 
     while (1)
     {
@@ -206,6 +209,9 @@ void *real_relay(void *args)
                 goto end1;
             }
             n = ntohs(*((unsigned short *)(buf + 3)));
+            if (n > BUF_SIZE)
+                // data_len = n;
+                goto end1;
             n = recv_all(from, buf, n, 0);
             if (n <= 0)
             {
@@ -519,7 +525,7 @@ void *handle_socks5(void *args)
             memset(&addr, 0, sizeof(addr));
             sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-            int l = real_info[1];
+            int l = (unsigned char)real_info[1];
             char *add = malloc(l + 1);
             memcpy(add, real_info + 2, l);
             add[l] = 0;
