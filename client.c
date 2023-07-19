@@ -76,9 +76,9 @@ void *relay(void *args)
                 goto end1;
             n -= 16;
         }
-        pthread_mutex_lock(info->to_mutex);
+        // pthread_mutex_lock(info->to_mutex);
         n = send(to, buf1, n, 0);
-        pthread_mutex_unlock(info->to_mutex);
+        // pthread_mutex_unlock(info->to_mutex);
         if (n <= 0)
         {
             goto end1;

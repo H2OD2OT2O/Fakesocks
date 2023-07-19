@@ -43,9 +43,9 @@ void *relay(void *args)
         n = recv_all(from, buf, 5, 0);
         if (n <= 0)
             goto end;
-        pthread_mutex_lock(info->to_mutex);
+        // pthread_mutex_lock(info->to_mutex);
         n = send(to, buf, n, 0);
-        pthread_mutex_unlock(info->to_mutex);
+        // pthread_mutex_unlock(info->to_mutex);
         if (n <= 0)
         {
             goto end;
@@ -63,9 +63,9 @@ void *relay(void *args)
         n = recv_all(from, buf, n, 0);
         if (n <= 0)
             goto end;
-        pthread_mutex_lock(info->to_mutex);
+        // pthread_mutex_lock(info->to_mutex);
         n = send(to, buf, n, 0);
-        pthread_mutex_unlock(info->to_mutex);
+        // pthread_mutex_unlock(info->to_mutex);
         if (n <= 0)
         {
             goto end;
@@ -89,9 +89,9 @@ void *relay(void *args)
                 n = ntohs(*((unsigned short *)(buf + 3)));
                 if (n > 1500)
                 {
-                    pthread_mutex_lock(info->to_mutex);
+                    // pthread_mutex_lock(info->to_mutex);
                     n = send(to, buf, 5, 0);
-                    pthread_mutex_unlock(info->to_mutex);
+                    // pthread_mutex_unlock(info->to_mutex);
                     if (n <= 0)
                     {
                         goto end;
@@ -101,9 +101,9 @@ void *relay(void *args)
                 n = recv_all(from, buf + 5, n, 0);
                 if (n <= 0)
                     goto end;
-                pthread_mutex_lock(info->to_mutex);
+                // pthread_mutex_lock(info->to_mutex);
                 n = send(to, buf, n + 5, 0);
-                pthread_mutex_unlock(info->to_mutex);
+                // pthread_mutex_unlock(info->to_mutex);
                 if (n <= 0)
                 {
                     goto end;
@@ -113,9 +113,9 @@ void *relay(void *args)
             n = ntohs(*((unsigned short *)(buf + 3)));
             if (n > 1500)
             {
-                pthread_mutex_lock(info->to_mutex);
+                // pthread_mutex_lock(info->to_mutex);
                 n = send(to, buf, 5, 0);
-                pthread_mutex_unlock(info->to_mutex);
+                // pthread_mutex_unlock(info->to_mutex);
                 if (n <= 0)
                 {
                     goto end;
@@ -129,9 +129,9 @@ void *relay(void *args)
             // try to decrypt
             if (n <= 16)
             {
-                pthread_mutex_lock(info->to_mutex);
+                // pthread_mutex_lock(info->to_mutex);
                 n = send(to, buf, n + 5, 0);
-                pthread_mutex_unlock(info->to_mutex);
+                // pthread_mutex_unlock(info->to_mutex);
                 if (n <= 0)
                 {
                     goto end;
@@ -145,9 +145,9 @@ void *relay(void *args)
             // int ret = -1;
             if (info->buf[1] != 1 || ret != 0 || memcmp(plaintext, random, 32) != 0)
             {
-                pthread_mutex_lock(info->to_mutex);
+                // pthread_mutex_lock(info->to_mutex);
                 n = send(to, buf, n + 5, 0);
-                pthread_mutex_unlock(info->to_mutex);
+                // pthread_mutex_unlock(info->to_mutex);
                 if (n <= 0)
                 {
                     goto end;
@@ -167,9 +167,9 @@ void *relay(void *args)
         n = recv_all(from, buf, 5, 0);
         if (n <= 0)
             goto end;
-        pthread_mutex_lock(info->to_mutex);
+        // pthread_mutex_lock(info->to_mutex);
         n = send(to, buf, n, 0);
-        pthread_mutex_unlock(info->to_mutex);
+        // pthread_mutex_unlock(info->to_mutex);
         if (n <= 0)
         {
             goto end;
@@ -187,9 +187,9 @@ void *relay(void *args)
         n = recv_all(from, buf, n, 0);
         if (n <= 0)
             goto end;
-        pthread_mutex_lock(info->to_mutex);
+        // pthread_mutex_lock(info->to_mutex);
         n = send(to, buf, n, 0);
-        pthread_mutex_unlock(info->to_mutex);
+        // pthread_mutex_unlock(info->to_mutex);
         if (n <= 0)
         {
             goto end;
@@ -206,9 +206,9 @@ void *relay(void *args)
             n = recv_all(from, buf, 5, 0);
             if (n <= 0)
                 goto end;
-            pthread_mutex_lock(info->to_mutex);
+            // pthread_mutex_lock(info->to_mutex);
             n = send(to, buf, 5, 0);
-            pthread_mutex_unlock(info->to_mutex);
+            // pthread_mutex_unlock(info->to_mutex);
             if (n <= 0)
             {
                 goto end;
@@ -227,9 +227,9 @@ void *relay(void *args)
                 if (recieved == 0 && buf[0] == 0x4)
                     info->buf[1] = 1;
                 recieved += n;
-                pthread_mutex_lock(info->to_mutex);
+                // pthread_mutex_lock(info->to_mutex);
                 n = send(to, buf, n, 0);
-                pthread_mutex_unlock(info->to_mutex);
+                // pthread_mutex_unlock(info->to_mutex);
                 if (n <= 0)
                 {
                     goto end;
@@ -245,9 +245,9 @@ normal_relay:
         {
             goto end;
         }
-        pthread_mutex_lock(info->to_mutex);
+        // pthread_mutex_lock(info->to_mutex);
         n = send(to, buf, n, 0);
-        pthread_mutex_unlock(info->to_mutex);
+        // pthread_mutex_unlock(info->to_mutex);
         if (n <= 0)
         {
             goto end;
@@ -316,9 +316,9 @@ void *real_relay(void *args)
             *((unsigned short *)(buf1 + 3)) = htons(n + 16);
             n += 16 + 5;
         }
-        pthread_mutex_lock(info->to_mutex);
+        // pthread_mutex_lock(info->to_mutex);
         n = send(to, buf1, n, 0);
-        pthread_mutex_unlock(info->to_mutex);
+        // pthread_mutex_unlock(info->to_mutex);
         if (n <= 0)
         {
             goto end1;
