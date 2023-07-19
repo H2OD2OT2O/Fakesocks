@@ -206,47 +206,34 @@ void *relay(void *args)
             n = recv_all(from, buf, 5, 0);
             if (n <= 0)
                 goto end;
-            // check for tls handeshake data
-            if (buf[0] != 0x16)
-            {
-                pthread_mutex_lock(info->to_mutex);
-                n = send(to, buf, 5, 0);
-                pthread_mutex_unlock(info->to_mutex);
-                if (n <= 0)
-                {
-                    goto end;
-                }
-                goto normal_relay;
-            }
-            n = ntohs(*((unsigned short *)(buf + 3)));
-            if (n > 1500)
-            {
-                pthread_mutex_lock(info->to_mutex);
-                n = send(to, buf, 5, 0);
-                pthread_mutex_unlock(info->to_mutex);
-                if (n <= 0)
-                {
-                    goto end;
-                }
-                goto normal_relay;
-            }
-            n = recv_all(from, buf + 5, n, 0);
-            if (n <= 0)
-                goto end;
-
             pthread_mutex_lock(info->to_mutex);
-            n = send(to, buf, n + 5, 0);
+            n = send(to, buf, 5, 0);
             pthread_mutex_unlock(info->to_mutex);
             if (n <= 0)
             {
                 goto end;
             }
-
-            // check new session ticket
-            if (buf[5] == 0x4)
+            // check for tls handeshake data
+            if (buf[0] != 0x16)
             {
-                info->buf[1] = 1;
                 goto normal_relay;
+            }
+            n = ntohs(*((unsigned short *)(buf + 3)));
+            int target = n;
+            int recieved = 0;
+            while (recieved < target)
+            {
+                n = recv(from, buf, target - recieved > BUF_SIZE ? BUF_SIZE : target - recieved, 0);
+                if (recieved == 0 && buf[0] == 0x4)
+                    info->buf[1] = 1;
+                recieved += n;
+                pthread_mutex_lock(info->to_mutex);
+                n = send(to, buf, n, 0);
+                pthread_mutex_unlock(info->to_mutex);
+                if (n <= 0)
+                {
+                    goto end;
+                }
             }
         }
     }
