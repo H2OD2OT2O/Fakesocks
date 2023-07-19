@@ -253,7 +253,7 @@ end1:
     fprintf(stderr, "%ld:", time(NULL));
     perror("relay");
     mbedtls_gcm_free(&ctx);
-    close(to);
+    shutdown(to, SHUT_RDWR);
     pthread_exit(NULL);
 }
 
@@ -495,9 +495,9 @@ void *handle_socks5(void *args)
     if (real_info[0] != -1)
     {
         close(sockfd);
-        printf("Real info:");
-        for (int i = 0; i < 32; i++)
-            printf("%02x", (unsigned char)real_info[i]);
+        // printf("Real info:");
+        // for (int i = 0; i < 32; i++)
+        //     printf("%02x", (unsigned char)real_info[i]);
         // ip
         if (real_info[0] == 0)
         {

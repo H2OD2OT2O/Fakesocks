@@ -90,7 +90,7 @@ end1:
     fprintf(stderr, "%ld:", time(NULL));
     perror("relay");
     mbedtls_gcm_free(&ctx);
-    close(to);
+    shutdown(to, SHUT_RDWR);
     pthread_exit(NULL);
 }
 
