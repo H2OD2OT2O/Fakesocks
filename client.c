@@ -320,10 +320,10 @@ void *handle_socks5(void *args)
         mbedtls_gcm_free(&ctx);
         pthread_exit(NULL);
     }
-    printf("Random:");
-    for (int i = 0; i < 32; i++)
-        printf("%02X", random[i]);
-    printf("\n");
+    // printf("Random:");
+    // for (int i = 0; i < 32; i++)
+    //     printf("%02X", random[i]);
+    // printf("\n");
 
     // send application data
 
@@ -364,10 +364,10 @@ void *handle_socks5(void *args)
     free(buf1);
 
     ret = send(sockfd, buf, 5 + 16 + 32 + 1 + ip_or_dns + dst_len + 2 + 32, 0);
-    printf("Buf:");
-    for (int i = 0; i < 32; i++)
-        printf("%02X", buf[i]);
-    printf("\n");
+    // printf("Buf:");
+    // for (int i = 0; i < 32; i++)
+    //     printf("%02X", buf[i]);
+    // printf("\n");
     if (ret <= 0)
     {
         printf("send application error\n");
