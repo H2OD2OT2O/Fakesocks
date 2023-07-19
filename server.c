@@ -143,7 +143,7 @@ void *relay(void *args)
                                           plaintext, iv, 12,
                                           buf + 5, 16);
             // int ret = -1;
-            if (ret != 0 || memcmp(plaintext, random, 32) != 0)
+            if (info->buf[1] != 1 || ret != 0 || memcmp(plaintext, random, 32) != 0)
             {
                 pthread_mutex_lock(info->to_mutex);
                 n = send(to, buf, n + 5, 0);
@@ -158,6 +158,96 @@ void *relay(void *args)
             printf("Fakesocks detected!\n");
             shutdown(to, SHUT_RDWR);
             goto end;
+        }
+    }
+    else
+    {
+        // fake server to client
+
+        n = recv_all(from, buf, 5, 0);
+        if (n <= 0)
+            goto end;
+        pthread_mutex_lock(info->to_mutex);
+        n = send(to, buf, n, 0);
+        pthread_mutex_unlock(info->to_mutex);
+        if (n <= 0)
+        {
+            goto end;
+        }
+        // check for tls handshake
+        if (buf[0] != 0x16)
+        {
+            goto normal_relay;
+        }
+        n = ntohs(*((unsigned short *)(buf + 3)));
+        if (n > 1500)
+        {
+            goto normal_relay;
+        }
+        n = recv_all(from, buf, n, 0);
+        if (n <= 0)
+            goto end;
+        pthread_mutex_lock(info->to_mutex);
+        n = send(to, buf, n, 0);
+        pthread_mutex_unlock(info->to_mutex);
+        if (n <= 0)
+        {
+            goto end;
+        }
+        // check for server hello
+        if (buf[0] != 0x2)
+        {
+            goto normal_relay;
+        }
+
+        // wait for new session ticket
+        while (1)
+        {
+            n = recv_all(from, buf, 5, 0);
+            if (n <= 0)
+                goto end;
+            // check for tls handeshake data
+            if (buf[0] != 0x16)
+            {
+                pthread_mutex_lock(info->to_mutex);
+                n = send(to, buf, 5, 0);
+                pthread_mutex_unlock(info->to_mutex);
+                if (n <= 0)
+                {
+                    goto end;
+                }
+                goto normal_relay;
+            }
+            n = ntohs(*((unsigned short *)(buf + 3)));
+            if (n > 1500)
+            {
+                pthread_mutex_lock(info->to_mutex);
+                n = send(to, buf, 5, 0);
+                pthread_mutex_unlock(info->to_mutex);
+                if (n <= 0)
+                {
+                    goto end;
+                }
+                goto normal_relay;
+            }
+            n = recv_all(from, buf + 5, n, 0);
+            if (n <= 0)
+                goto end;
+
+            pthread_mutex_lock(info->to_mutex);
+            n = send(to, buf, n + 5, 0);
+            pthread_mutex_unlock(info->to_mutex);
+            if (n <= 0)
+            {
+                goto end;
+            }
+
+            // check new session ticket
+            if (buf[5] == 0x4)
+            {
+                info->buf[1] = 1;
+                goto normal_relay;
+            }
         }
     }
 normal_relay:
@@ -484,9 +574,10 @@ void *handle_socks5(void *args)
     signed char *real_info;
     real_info = malloc(BUF_SIZE);
     real_info[0] = -1;
+    real_info[1] = 0;
     pthread_mutex_init(&cli, NULL);
     pthread_mutex_init(&ser, NULL);
-    Args c2r = {sfd, sockfd, &cli, &ser, 0, real_info}, r2c = {sockfd, sfd, &ser, &cli, 1, NULL};
+    Args c2r = {sfd, sockfd, &cli, &ser, 0, real_info}, r2c = {sockfd, sfd, &ser, &cli, 1, real_info};
     pthread_create(&pid[0], NULL, relay, &c2r);
     pthread_create(&pid[1], NULL, relay, &r2c);
     pthread_join(pid[0], NULL);
