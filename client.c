@@ -36,16 +36,16 @@ void *relay(void *args)
     // int data_len = 0;
 
     int buffer_size = 256 * 1024; // 缓冲区大小，单位为字节
-    if (setsockopt(from, SOL_SOCKET, SO_SNDBUF, &buffer_size, sizeof(buffer_size)) < 0)
-    {
-        perror("setsockopt");
-        goto end1;
-    }
-    if (setsockopt(from, SOL_SOCKET, SO_RCVBUF, &buffer_size, sizeof(buffer_size)) < 0)
-    {
-        perror("setsockopt");
-        goto end1;
-    }
+    // if (setsockopt(from, SOL_SOCKET, SO_SNDBUF, &buffer_size, sizeof(buffer_size)) < 0)
+    // {
+    //     perror("setsockopt");
+    //     goto end1;
+    // }
+    // if (setsockopt(from, SOL_SOCKET, SO_RCVBUF, &buffer_size, sizeof(buffer_size)) < 0)
+    // {
+    //     perror("setsockopt");
+    //     goto end1;
+    // }
 
     while (1)
     {
